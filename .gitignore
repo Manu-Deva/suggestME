@@ -1,11 +1,13 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-
+# sensitive info
 .env
 credentials
 config
 node_modules
 .serverless
+repopack-output.txt
+
 
 # dependencies
 /node_modules
