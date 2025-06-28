@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion"; // Import framer-motion
 import {
   getUserFavorites,
   getRelatedArtists,
@@ -14,101 +17,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-function ArtistModal({ artist, relatedArtists, shows, loading, error }) {
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date not available";
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  if (loading)
-    return (
-      <div className="flex flex-col space-y-3 justify-center items-center py-8">
-        <Skeleton className="h-[125px] w-[250px] rounded-xl bg-gray-800" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[250px]" />
-          <Skeleton className="h-4 w-[200px]" />
-        </div>
-      </div>
-    );
-  if (error)
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>;
-
-  return (
-    <div className="p-4 bg-black">
-      <h2 className="text-2xl font-bold mb-4">
-        Related Artists for {artist.name}
-      </h2>
-      {relatedArtists.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {relatedArtists.map((relatedArtist) => (
-            <div
-              key={relatedArtist.id}
-              className="border border-gray-200 bg-black p-4 rounded-lg shadow-lg transition-all hover:shadow-2xl hover:scale-105 transform hover:bg-gray-800 duration-300 ease-in-out"
-            >
-              <h3 className="text-lg font-semibold text-white">
-                {relatedArtist.name}
-              </h3>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mb-6">No related artists found.</p>
-      )}
-
-      <h2 className="text-2xl font-bold mb-4">
-        Upcoming Shows for {artist.name}
-      </h2>
-      {shows.length > 0 ? (
-        <div className="space-y-4">
-          {shows.map((show) => (
-            <div
-              key={show.id}
-              className="border border-gray-200 bg-black p-4 rounded-lg shadow-lg transition-all hover:shadow-2xl hover:scale-105 transform hover:bg-gray-800 duration-300 ease-in-out flex items-center"
-            >
-              <div className="flex-grow">
-                <h3 className="text-lg font-semibold text-white">
-                  {show.name}
-                </h3>
-                <p>{formatDate(show.dates?.start?.localDate)}</p>
-                {show._embedded && show._embedded.venues[0] && (
-                  <p>
-                    {show._embedded.venues[0].name},{" "}
-                    {show._embedded.venues[0].city.name}
-                  </p>
-                )}
-                <a
-                  href={show.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  Buy Tickets
-                </a>
-              </div>
-              {show.images.length > 0 && (
-                <img
-                  src={show.images[0].url}
-                  alt={show.name}
-                  className="w-1/3 h-1/3 object-cover rounded-md ml-4"
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p>No upcoming shows found.</p>
-      )}
-    </div>
-  );
-}
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import ArtistModal from "@/components/ArtistModal";
+import Link from "next/link";
+import Image from "next/image";
 
 export default function Favorites() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const profileData = useSelector((state) => state.profile.profile);
+  const token = useSelector((state) => state.profile.accessToken);
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -121,9 +46,10 @@ export default function Favorites() {
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
-        const token = localStorage.getItem("spotify_access_token");
         if (!token) {
-          throw new Error("No access token found");
+          alert("No access token! Ensure you're authenticated.");
+          dispatch(clearProfile());
+          router.push("/get-started");
         }
         const data = await getUserFavorites(token);
         setFavorites(data.items);
@@ -142,7 +68,6 @@ export default function Favorites() {
     setModalLoading(true);
     setModalError(null);
     try {
-      const token = localStorage.getItem("spotify_access_token");
       const relatedData = await getRelatedArtists(artist.id, token);
 
       if (Array.isArray(relatedData)) {
@@ -179,51 +104,103 @@ export default function Favorites() {
     return <div className="text-center py-8 text-red-500">Error: {error}</div>;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Your Top Artists</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {favorites.map((artist) => (
-          <div
-            key={artist.id}
-            className="bg-black border border-gray-300 shadow-md rounded-lg overflow-hidden"
-          >
-            <img
-              src={artist.images[0]?.url}
-              alt={artist.name}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-4">
-              <h2 className="text-xl text-green-700 font-semibold mb-2">
-                {artist.name}
-              </h2>
-              <p className="text-md text-white mb-4">
-                {artist.genres.join(", ")}
-              </p>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <button
-                    onClick={() => handleArtistSelect(artist)}
-                    className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Show Related & Upcoming
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-black">
-                  <DialogHeader>
-                    <DialogTitle>{artist.name}</DialogTitle>
-                  </DialogHeader>
-                  <ArtistModal
-                    artist={artist}
-                    relatedArtists={relatedArtists}
-                    shows={shows}
-                    loading={modalLoading}
-                    error={modalError}
+    <div className="flex flex-col min-h-screen">
+      <header className="px-4 lg:px-6 h-14 flex items-center">
+        <div className="flex items-center space-x-10">
+          <Link className="flex items-center justify-center" href="/">
+            <span className="ml-2 text-2xl font-bold">SuggestMe</span>
+          </Link>
+          <nav className="hidden md:flex space-x-10">
+            <Link
+              href="/"
+              className="hover:text-gray-300 text-sm font-medium hover:underline underline-offset-4"
+            >
+              Home
+            </Link>
+            <Link
+              href="/dashboard"
+              className="hover:text-gray-300 text-sm font-medium hover:underline underline-offset-4"
+            >
+              Dashboard
+            </Link>
+          </nav>
+        </div>
+        <nav className="ml-auto flex items-center gap-4 sm:gap-6">
+          {profileData && profileData.images ? (
+            <span className="flex flex-row items-center space-x-4 text-sm font-medium">
+              <img
+                src={profileData.images[0].url}
+                alt="Profile"
+                className="w-10 h-10 rounded-full mt-2"
+              />
+            </span>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-green-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+            >
+              Login
+            </Link>
+          )}
+        </nav>
+      </header>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Your Top Artists</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {favorites.map((artist, index) => (
+            <motion.div
+              key={artist.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+            >
+              <Card className="w-full max-w-lg bg-white text-black overflow-hidden">
+                <div className="relative h-48 w-full">
+                  <Image
+                    src={artist.images[0]?.url}
+                    alt={artist.name}
+                    layout="fill"
+                    objectFit="cover"
                   />
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        ))}
+                </div>
+                <CardContent className="p-4">
+                  <h2 className="text-xl font-semibold text-black ">
+                    {artist.name}
+                  </h2>
+                  <p className="text-sm text-black mt-1">
+                    {artist.genres.join(", ")}
+                  </p>
+                </CardContent>
+                <CardFooter className="p-4 pt-0">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleArtistSelect(artist)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                      >
+                        More Info
+                      </motion.button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-black">
+                      <DialogHeader>
+                        <DialogTitle>{artist.name}</DialogTitle>
+                      </DialogHeader>
+                      <ArtistModal
+                        artist={artist}
+                        relatedArtists={relatedArtists}
+                        shows={shows}
+                        loading={modalLoading}
+                        error={modalError}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   );

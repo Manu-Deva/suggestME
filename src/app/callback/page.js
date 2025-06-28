@@ -2,23 +2,32 @@
 
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  refreshAccessToken,
+  setTokens,
+  clearProfile,
+} from "../../store/profileSlice";
 import { exchangeAuthorizationCode } from "../../lib/api";
 
 export default function Callback() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [status, setStatus] = useState("Processing your Spotify login...");
   const searchParams = useSearchParams();
 
   useEffect(() => {
     // const urlParams = new URLSearchParams(window.location.search);
     // const code = urlParams.get("code");
+    dispatch(clearProfile());
     const code = searchParams.get("code");
-    console.log(code);
+    console.log("authorization code: ", code);
 
     if (code) {
       exchangeAuthorizationCodeFromSpotify(code);
     } else {
       setStatus("Error: No authorization code found");
+      console.log("Error: No authorization code found");
     }
   }, [searchParams]);
 
@@ -27,17 +36,20 @@ export default function Callback() {
       const { access_token, refresh_token, expires_in } =
         await exchangeAuthorizationCode(authCode);
 
-      // Store tokens in localStorage or cookies
-      localStorage.setItem("spotify_access_token", access_token);
-      localStorage.setItem("spotify_refresh_token", refresh_token);
-      localStorage.setItem("spotify_expires_in", expires_in);
+      dispatch(
+        refreshAccessToken({
+          accessToken: access_token,
+          refreshToken: refresh_token,
+          tokenExpirationTime: expires_in,
+        })
+      );
 
       setStatus("Login successful! Redirecting...");
       console.log("access token", access_token);
 
       // Redirect to the homepage after successful authentication
       //   setTimeout(() => router.push("/favorites"), 1000);
-      router.push("/");
+      router.push("/get-started");
     } catch (error) {
       console.error("Error exchanging authorization code:", error);
       setStatus("Error occurred during login. Please try again.");

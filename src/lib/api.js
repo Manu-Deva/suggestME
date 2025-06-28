@@ -15,8 +15,16 @@ export const exchangeAuthorizationCode = async (authCode) => {
     );
     return response.data; // Returns access_token, refresh_token, and expires_in
   } catch (error) {
-    console.error("Error exchanging authorization code:", error);
-    console.log(authCode);
+    console.error("Error exchanging authorization code:", error.message);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Request data:", error.request);
+    } else {
+      console.error("Error details:", error.message);
+    }
     throw new Error("Failed to exchange authorization code");
   }
 };
@@ -119,6 +127,29 @@ export const getNextShows = async (artistName) => {
   }
 };
 
+export const getWeatherBasedRecs = async (zipCode) => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/weather/recs?zipcode=${zipCode}`
+      //   {
+      //     headers: {
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   }
+    );
+
+    console.log("api side zipcode :", zipCode);
+    if (!response.ok) {
+      throw new Error("Failed to fetch weather-based recommendations");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching weather-based recommendations:", error);
+    throw error;
+  }
+};
+
 export const getProfile = async (token) => {
   try {
     const result = await fetch(`${API_BASE_URL}/spotify/profile`, {
@@ -177,7 +208,24 @@ export const addToPlaylist = async (token, genre, user_id, urls) => {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    return response.data; // Returns snapshot_id
+    const {
+      playlist_id,
+      playlist_image,
+      playlist_genre,
+      playlist_urls,
+      confirmation,
+    } = await response.data;
+    console.log(
+      "playlist:",
+      playlist_id,
+      "cover:",
+      playlist_image,
+      "tracks:",
+      playlist_urls,
+      "confirmation:",
+      confirmation
+    );
+    return await response.data;
   } catch (error) {
     console.error("Error adding to playlist", error);
     // console.log(authCode);
