@@ -1,0 +1,141 @@
+org: suggestme
+app: suggestme
+service: suggest-me-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-2
+  stage: dev
+  environment:
+    SPOTIFY_CLIENT_ID: ${env:SPOTIFY_CLIENT_ID}
+    SPOTIFY_CLIENT_SECRET: ${env:SPOTIFY_CLIENT_SECRET}
+    TICKETMASTER_API_KEY: ${env:TICKETMASTER_API_KEY}
+
+functions:
+  spotifyAuth:
+    handler: src/handlers/spotifyAuth.handler
+    events:
+      - http:
+          path: spotify/auth
+          method: post
+          cors: true
+
+  getUserFavorites:
+    handler: src/handlers/getUserFavorites.handler
+    events:
+      - http:
+          path: user/favorites
+          method: get
+          cors: true
+
+  searchEvents:
+    handler: src/handlers/searchEvents.handler
+    events:
+      - http:
+          path: events/search
+          method: post
+          cors: true
+
+  genreRecs:
+    handler: src/handlers/genreRecs.handler
+    events:
+      - http:
+          path: recs/genres
+          method: get
+          cors: true
+
+  searchArtist:
+    handler: src/handlers/searchArtist.handler
+    events:
+      - http:
+          path: spotify/search
+          method: get
+          cors: true
+
+  getRelatedArtists:
+    handler: src/handlers/getRelatedArtists.handler
+    events:
+      - http:
+          path: spotify/related-artists
+          method: get
+          cors: true
+
+  addToPlaylist:
+    handler: src/handlers/addToPlaylist.handler
+    events:
+      - http:
+          path: spotify/playlist
+          method: post
+          cors: true
+
+  # getPlaylists:
+  #     handler: src/handlers/getPlaylists.handler
+  #     events:
+  #       - http:
+  #           path: spotify/retrieve
+  #           method: get
+  #           cors: true
+
+  getProfile:
+    handler: src/handlers/getProfile.handler
+    events:
+      - http:
+          path: spotify/profile
+          method: get
+          cors: true
+
+  getTopData:
+    handler: src/handlers/getTopData.handler
+    events:
+      - http:
+          path: spotify/data
+          method: get
+          cors: true
+
+  getNextShows:
+    handler: src/handlers/getNextShows.handler
+    events:
+      - http:
+          path: ticketmaster/shows
+          method: get
+          cors: true
+
+  artistShows:
+    handler: src/handlers/artistShows.handler
+    events:
+      - http:
+          path: artist/shows
+          method: get
+          cors: true
+
+  weatherRecs:
+    handler: src/handlers/weatherRecs.handler
+    events:
+      - http:
+          path: weather/recs
+          method: get
+          cors: true
+
+custom:
+  cors:
+    origin: "*" # Be more specific in production
+    headers:
+      - Content-Type
+      - X-Amz-Date
+      - Authorization
+      - X-Api-Key
+      - X-Amz-Security-Token
+      - X-Amz-User-Agent
+      - Accept
+      - X-Requested-With
+      - Origin
+    allowCredentials: false
+    allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+# plugins:
+#   - serverless-cors-plugin
