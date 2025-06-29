@@ -21,6 +21,7 @@ const handler = async (event) => {
       body: JSON.stringify(response.data),
     };
   } catch (error) {
+    console.error("Error fetching user favorites:", error.response ? error.response.data : error.message);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: "Failed to fetch favorites" }),

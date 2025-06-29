@@ -8,7 +8,7 @@ import {
   setTokens,
   clearProfile,
 } from "../../store/profileSlice";
-import { exchangeAuthorizationCode } from "../../lib/api";
+import { exchangeAuthorizationCode, getProfile } from "../../lib/api";
 
 export default function Callback() {
   const router = useRouter();
@@ -44,15 +44,28 @@ export default function Callback() {
         })
       );
 
-      setStatus("Login successful! Redirecting...");
-      console.log("access token", access_token);
-
-      // Redirect to the homepage after successful authentication
-      //   setTimeout(() => router.push("/favorites"), 1000);
-      router.push("/get-started");
+      // Fetch and set user profile
+      try {
+        const userProfile = await getProfile(access_token);
+        if (!userProfile || !userProfile.display_name) {
+          throw new Error("Invalid profile data");
+        }
+        dispatch({ type: "profile/setProfile", payload: userProfile });
+        setStatus("Login successful! Redirecting...");
+        router.push("/get-started");
+      } catch (profileError) {
+        console.error("Error fetching profile after login:", profileError);
+        dispatch(clearProfile());
+        localStorage.clear();
+        setStatus("Error occurred during login. Please try again.");
+        router.push("/login");
+      }
     } catch (error) {
       console.error("Error exchanging authorization code:", error);
+      dispatch(clearProfile());
+      localStorage.clear();
       setStatus("Error occurred during login. Please try again.");
+      router.push("/login");
     }
   };
 

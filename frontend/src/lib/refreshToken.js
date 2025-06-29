@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useDispatch } from "react-redux";
-import { refreshAccessToken } from "../../store/profileSlice";
+import { refreshAccessToken } from "../store/profileSlice";
 
 // Helper function to refresh token
 export const refreshToken = async (dispatch, refreshToken) => {

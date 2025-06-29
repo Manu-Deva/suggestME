@@ -68,6 +68,7 @@ export default function Favorites() {
     setModalLoading(true);
     setModalError(null);
     try {
+	  console.log("AUth token: ", token);
       const relatedData = await getRelatedArtists(artist.id, token);
 
       if (Array.isArray(relatedData)) {

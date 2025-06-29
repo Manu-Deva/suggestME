@@ -1,10 +1,11 @@
 {
-  "devDependencies": {
-    "serverless-cors-plugin": "^0.4.2"
-  },
-  "dependencies": {
-    "axios": "^1.7.7",
-    "dotenv": "^16.4.5",
-    "middy": "^0.36.0"
-  }
+	"devDependencies": {
+		"serverless-cors-plugin": "^0.4.2"
+	},
+	"dependencies": {
+		"axios": "^1.7.7",
+		"dotenv": "^16.4.5",
+		"middy": "^0.36.0",
+		"serverless": "^4.17.1"
+	}
 }

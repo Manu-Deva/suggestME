@@ -137,5 +137,5 @@ custom:
       - PUT
       - DELETE
       - OPTIONS
-# plugins:
-#   - serverless-cors-plugin
+plugins:
+  - serverless-offline
