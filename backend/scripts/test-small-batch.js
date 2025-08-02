@@ -60,7 +60,7 @@ async function upsertArtist(artist) {
 }
 
 async function main() {
-  const testArtists = ['Drake', 'Future']; // Just 2 artists for testing
+  const testArtists = ['Eminem', 'Adele']; // Try different artists
   
   console.log('🧪 TESTING: Small batch crawl');
   console.log(`Testing with ${testArtists.length} artists...`);
@@ -70,8 +70,9 @@ async function main() {
     console.log(`\n[${i + 1}/${testArtists.length}] Testing: ${name}`);
     try {
       const artist = await getArtistByName(name);
+      console.log(`🔍 Search result for ${name}:`, artist ? 'Found' : 'Not found');
       if (artist) {
-        console.log(`✅ Found ${artist.name} (${artist.followers.total.toLocaleString()} followers)`);
+        console.log(`✅ Found ${artist.name} (${artist.followers?.total?.toLocaleString() || 'Unknown'} followers)`);
         await upsertArtist(artist);
       } else {
         console.log(`❌ Artist not found: ${name}`);

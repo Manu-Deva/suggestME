@@ -21,6 +21,7 @@ async function testSpotify() {
     });
     
     console.log('✅ Spotify API test successful');
+    console.log('Full response:', JSON.stringify(response.data, null, 2));
     console.log('Artist found:', response.data.artists.items[0]?.name);
     
   } catch (error) {
