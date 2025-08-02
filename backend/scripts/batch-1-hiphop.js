@@ -43,7 +43,7 @@ async function getArtistByName(name) {
   const params = { q: name, type: 'artist', limit: 1 };
   const headers = { Authorization: `Bearer ${token}` };
   const res = await safeAxiosGet(url, { params, headers });
-  await sleep(100);
+  await sleep(1000); // Increased delay to avoid 502s
   return res.data.artists.items[0];
 }
 
@@ -51,9 +51,10 @@ async function getArtistAlbums(artistId) {
   const token = await getSpotifyAppToken();
   const url = `https://api.spotify.com/v1/artists/${artistId}/albums`;
   const headers = { Authorization: `Bearer ${token}` };
-  const params = { limit: 50, include_groups: "album,single,appears_on" };
+  // Focus on albums and singles, exclude compilation albums initially
+  const params = { limit: 50, include_groups: "album,single" };
   const res = await safeAxiosGet(url, { headers, params });
-  await sleep(100);
+  await sleep(1000); // Increased delay to avoid 502s
   return res.data.items;
 }
 
@@ -63,7 +64,7 @@ async function getAlbumTracks(albumId) {
   const headers = { Authorization: `Bearer ${token}` };
   const params = { limit: 50 };
   const res = await safeAxiosGet(url, { headers, params });
-  await sleep(100);
+  await sleep(1000); // Increased delay to avoid 502s
   return res.data.items;
 }
 
@@ -78,8 +79,22 @@ async function upsertArtist(artist) {
 async function upsertCollaboration(artistA, artistB, track, album) {
   await session.run(
     `MATCH (a:Artist {id: $idA}), (b:Artist {id: $idB})
-     MERGE (a)-[r:COLLABORATED_ON {track: $track, album: $album}]->(b)`,
-    { idA: artistA.id, idB: artistB.id, track: track.name, album: album.name }
+     MERGE (a)-[r:COLLABORATED_ON {
+       track: $track, 
+       album: $album,
+       track_artists: $track_artists,
+       album_type: $album_type,
+       track_id: $track_id
+     }]->(b)`,
+    { 
+      idA: artistA.id, 
+      idB: artistB.id, 
+      track: track.name, 
+      album: album.name,
+      track_artists: track.artists.map(a => a.name),
+      album_type: album.album_type,
+      track_id: track.id
+    }
   );
 }
 
@@ -96,10 +111,24 @@ async function crawlArtist(name) {
   const albums = await getArtistAlbums(artist.id);
   console.log(`  Found ${albums.length} albums`);
   
+  // Filter albums to only include those where the artist is a primary artist
+  const filteredAlbums = albums.filter(album => {
+    // Check if the artist is one of the main artists on the album
+    return album.artists.some(albumArtist => albumArtist.id === artist.id);
+  });
+  
+  console.log(`  Filtered to ${filteredAlbums.length} albums where ${artist.name} is a primary artist`);
+  
   let collaborationCount = 0;
-  for (const album of albums) {
+  for (const album of filteredAlbums) {
     const tracks = await getAlbumTracks(album.id);
     for (const track of tracks) {
+      // Only process tracks where our target artist actually appears
+      const trackArtistIds = track.artists.map(a => a.id);
+      if (!trackArtistIds.includes(artist.id)) {
+        continue; // Skip tracks where our artist doesn't appear
+      }
+      
       for (const featured of track.artists) {
         await upsertArtist(featured);
         if (featured.id !== artist.id) {
@@ -144,7 +173,7 @@ async function main() {
       console.error(`❌ Error crawling ${name}:`, error.message);
     }
     // Add delay between artists
-    await sleep(500);
+    await sleep(2000); // Increased delay between artists
   }
   
   console.log('\n🎉 BATCH 1 COMPLETED!');
