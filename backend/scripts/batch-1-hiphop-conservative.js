@@ -1,3 +1,4 @@
+// Ultra-conservative version of batch-1 with heavy rate limiting
 require('dotenv').config();
 const axios = require('axios');
 const neo4j = require('neo4j-driver');
@@ -21,23 +22,29 @@ function sleep(ms) {
 }
 
 async function safeAxiosGet(url, options) {
-  while (true) {
+  let retries = 0;
+  const maxRetries = 5;
+  
+  while (retries < maxRetries) {
     try {
       return await axios.get(url, options);
     } catch (error) {
+      retries++;
       if (error.response && error.response.status === 429) {
         const retryAfter = error.response.headers['retry-after'];
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
-        console.warn(`Rate limited. Waiting for ${waitTime}ms...`);
+        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 10000;
+        console.warn(`Rate limited. Waiting for ${waitTime}ms... (retry ${retries}/${maxRetries})`);
         await sleep(waitTime);
       } else if (error.response && error.response.status === 502) {
-        console.warn(`502 error. Waiting 10 seconds and retrying...`);
-        await sleep(10000); // Wait 10 seconds for 502 errors
+        const waitTime = 15000 * retries; // Exponential backoff
+        console.warn(`502 error. Waiting ${waitTime}ms... (retry ${retries}/${maxRetries})`);
+        await sleep(waitTime);
       } else {
         throw error;
       }
     }
   }
+  throw new Error(`Failed after ${maxRetries} retries`);
 }
 
 async function getArtistByName(name) {
@@ -46,7 +53,7 @@ async function getArtistByName(name) {
   const params = { q: name, type: 'artist', limit: 1 };
   const headers = { Authorization: `Bearer ${token}` };
   const res = await safeAxiosGet(url, { params, headers });
-  await sleep(3000); // Even longer delay to avoid 502s
+  await sleep(5000); // Very conservative delay
   return res.data.artists.items[0];
 }
 
@@ -54,10 +61,10 @@ async function getArtistAlbums(artistId) {
   const token = await getSpotifyAppToken();
   const url = `https://api.spotify.com/v1/artists/${artistId}/albums`;
   const headers = { Authorization: `Bearer ${token}` };
-  // Focus on albums and singles, limit to 20 to reduce API calls
-  const params = { limit: 40, include_groups: "album,single" };
+  // Very limited - only 10 albums
+  const params = { limit: 10, include_groups: "album,single" };
   const res = await safeAxiosGet(url, { headers, params });
-  await sleep(3000); // Even longer delay to avoid 502s
+  await sleep(5000);
   return res.data.items;
 }
 
@@ -65,9 +72,9 @@ async function getAlbumTracks(albumId) {
   const token = await getSpotifyAppToken();
   const url = `https://api.spotify.com/v1/albums/${albumId}/tracks`;
   const headers = { Authorization: `Bearer ${token}` };
-  const params = { limit: 50 };
+  const params = { limit: 20 }; // Limit tracks too
   const res = await safeAxiosGet(url, { headers, params });
-  await sleep(3000); // Even longer delay to avoid 502s
+  await sleep(5000);
   return res.data.items;
 }
 
@@ -116,7 +123,6 @@ async function crawlArtist(name) {
   
   // Filter albums to only include those where the artist is a primary artist
   const filteredAlbums = albums.filter(album => {
-    // Check if the artist is one of the main artists on the album
     return album.artists.some(albumArtist => albumArtist.id === artist.id);
   });
   
@@ -124,19 +130,20 @@ async function crawlArtist(name) {
   
   let collaborationCount = 0;
   for (const album of filteredAlbums) {
+    console.log(`    Processing album: ${album.name}`);
     const tracks = await getAlbumTracks(album.id);
     for (const track of tracks) {
       // Only process tracks where our target artist actually appears
       const trackArtistIds = track.artists.map(a => a.id);
       if (!trackArtistIds.includes(artist.id)) {
-        continue; // Skip tracks where our artist doesn't appear
+        continue;
       }
       
       for (const featured of track.artists) {
         await upsertArtist(featured);
         if (featured.id !== artist.id) {
           await upsertCollaboration(artist, featured, track, album);
-          await upsertCollaboration(featured, artist, track, album); // undirected
+          await upsertCollaboration(featured, artist, track, album);
           collaborationCount++;
         }
       }
@@ -146,23 +153,10 @@ async function crawlArtist(name) {
 }
 
 async function main() {
-	const hipHopArtists = [
-		'Drake', 'Kendrick Lamar', 'J. Cole', 'Travis Scott', 'Future', 'Playboi Carti',
-		'Lil Baby', 'DaBaby', 'Megan Thee Stallion', 'Cardi B', 'Nicki Minaj', 'JID', 'Young Thug', 'Lil Tecca',
-		'21 Savage', 'YoungBoy Never Broke Again', 'Don Toliver', 'Lil Uzi Vert', 'A$AP Rocky', 'Tyler, The Creator',
-		'Young Nudy', 'Lil Nudy', 'Lil Durk', 'Lil Wayne', 'Lil Yachty', 'Juice WRLD', 'Jack Harlow', 'Eminem',
-		'Kanye West', 'Ye', 'Central Cee', 'Swae Lee', 'Lil Tjay', 'Quavo', 'Tyga', 'Ice Spice', 'Kodak Black', 'Skepta',
-		'Gunna', 'Polo G', 'NLE Choppa', 'NAV', 'Roddy Ricch', 'Moneybagg Yo', 'Trippie Redd', 'Lil Skies',
-		'Fivio Foreign', 'EST Gee', 'Latto', 'Coi Leray', 'Tee Grizzley', 'Lola Brooke',
-		'Earl Sweatshirt', 'Joey Bada$$', 'Denzel Curry', 'IDK', 'Cordae', 'Mick Jenkins',
-		'Freddie Gibbs', 'Benny the Butcher', 'Westside Gunn', 'Conway the Machine',
-		'Pop Smoke', 'Mac Miller', 'XXXTentacion', 'Nipsey Hussle', 'MF DOOM',
-		'The Alchemist', 'Madlib', 'J Dilla', 'Knxwledge', '9th Wonder', 'DJ Premier', 'Metro Boomin', 'Hit-Boy', 'Kenny Beats',
-		'Action Bronson', 'Boldy James', 'Roc Marciano', 'Mach-Hommy', 'MIKE', 'Navy Blue',
-		'Open Mike Eagle', 'Quelle Chris', 'Billy Woods', 'El-P', 'Aesop Rock'
-	  ];
+  // Start with just 3 artists to test
+  const hipHopArtists = ['Eminem', 'Dr. Dre', 'Snoop Dogg'];
   
-  console.log('🎤 BATCH 1: Hip-Hop/Rap Artists');
+  console.log('🎤 BATCH 1: Hip-Hop/Rap Artists (Conservative)');
   console.log(`Starting to crawl ${hipHopArtists.length} artists...`);
   console.log('=' .repeat(50));
   
@@ -175,14 +169,14 @@ async function main() {
     } catch (error) {
       console.error(`❌ Error crawling ${name}:`, error.message);
     }
-    // Add delay between artists
-    await sleep(5000); // Much longer delay between artists
+    // Very long delay between artists
+    console.log('⏱️ Waiting 10 seconds before next artist...');
+    await sleep(10000);
   }
   
-  console.log('\n🎉 BATCH 1 COMPLETED!');
-  console.log('You can now test connections between hip-hop artists!');
+  console.log('\n🎉 CONSERVATIVE BATCH COMPLETED!');
   await session.close();
   await driver.close();
 }
 
-main().catch(console.error); 
+main().catch(console.error);
