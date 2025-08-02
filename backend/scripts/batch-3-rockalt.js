@@ -151,20 +151,6 @@ async function crawlArtist(name) {
 
 async function main() {
   const rockArtists = [
-    "The Beatles",
-    "Queen",
-    "Led Zeppelin",
-    "Pink Floyd",
-    "Nirvana",
-    "Radiohead",
-    "Arctic Monkeys",
-    "The Rolling Stones",
-    "Fleetwood Mac",
-    "AC/DC",
-    "U2",
-    "Metallica",
-    "Eagles",
-    "The Cranberries",
     "Foo Fighters",
     "Oasis",
     "Black Sabbath",

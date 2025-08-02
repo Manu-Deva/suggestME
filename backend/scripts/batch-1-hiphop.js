@@ -147,7 +147,7 @@ async function crawlArtist(name) {
 
 async function main() {
 	const hipHopArtists = [
-		'Drake', 'Kendrick Lamar', 'J. Cole', 'Travis Scott', 'Future', 'Playboi Carti',
+		'Future', 'Playboi Carti',
 		'Lil Baby', 'DaBaby', 'Megan Thee Stallion', 'Cardi B', 'Nicki Minaj', 'JID', 'Young Thug', 'Lil Tecca',
 		'21 Savage', 'YoungBoy Never Broke Again', 'Don Toliver', 'Lil Uzi Vert', 'A$AP Rocky', 'Tyler, The Creator',
 		'Young Nudy', 'Lil Nudy', 'Lil Durk', 'Lil Wayne', 'Lil Yachty', 'Juice WRLD', 'Jack Harlow', 'Eminem',

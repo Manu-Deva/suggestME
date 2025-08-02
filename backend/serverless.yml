@@ -5,12 +5,21 @@ service: suggest-me-backend
 provider:
   name: aws
   runtime: nodejs18.x
+  vpc:
+    securityGroupIds:
+      - sg-0e7e06de606ef04ee
+    subnetIds:
+      - subnet-01bd8d5fd1f128cad
   region: us-east-2
   stage: dev
   environment:
     SPOTIFY_CLIENT_ID: ${env:SPOTIFY_CLIENT_ID}
     SPOTIFY_CLIENT_SECRET: ${env:SPOTIFY_CLIENT_SECRET}
     TICKETMASTER_API_KEY: ${env:TICKETMASTER_API_KEY}
+    NEO4J_URI: ${env:NEO4J_URI}
+    NEO4J_USER: ${env:NEO4J_USER}
+    NEO4J_PASS: ${env:NEO4J_PASS}
+    REDIRECT_URI: http://localhost:3000/callback
 
 functions:
   spotifyAuth:

@@ -147,7 +147,7 @@ async function crawlArtist(name) {
 
 async function main() {
 	const hipHopArtists = [
-		"Berhana", "Choker", "Q", "Orion Sun", "Aries", "Jelani Aryeh", "Raveena", 
+		"Jelani Aryeh", "Raveena", 
 		"Frankie Scoca", "JAWNY", "Cautious Clay", "Steve Lacy", "Brent Faiyaz",
 		"boy pablo", "Her's", "Weston Estate", "Marco Luka", "Greek", "Dijon", "Men I Trust", 
 		"KAYTRANADA", "Shelly", "Clairo", "Laufey", "Mk.gee", "Royel Otis", "Phoebe Bridgers", 
