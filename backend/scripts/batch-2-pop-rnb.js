@@ -24,15 +24,24 @@ function sleep(ms) {
 }
 
 async function safeAxiosGet(url, options) {
+  const MAX_RETRY_DELAY = 60000; // Maximum 60 second delay
+  const BASE_DELAY = 1000; // Start with 1 second delay
+  
   while (true) {
     try {
       return await axios.get(url, options);
     } catch (error) {
       if (error.response && error.response.status === 429) {
         const retryAfter = error.response.headers["retry-after"];
-        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 1000;
-        console.warn(`Rate limited. Waiting for ${waitTime}ms...`);
+        let waitTime = retryAfter ? parseInt(retryAfter) * 1000 : BASE_DELAY;
+        // Cap the wait time at MAX_RETRY_DELAY
+        waitTime = Math.min(waitTime, MAX_RETRY_DELAY);
+        console.warn(`Rate limited. Waiting for ${waitTime/1000} seconds...`);
         await sleep(waitTime);
+      } else if (error.response && error.response.status === 502) {
+        // Handle 502 errors with a shorter delay
+        console.warn('Got 502 error, retrying in 5 seconds...');
+        await sleep(5000);
       } else {
         throw error;
       }
