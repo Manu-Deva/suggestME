@@ -232,3 +232,23 @@ export const addToPlaylist = async (token, genre, user_id, urls) => {
     throw new Error("Failed to make playlist");
   }
 };
+
+export const getArtistConnection = async (startArtist, endArtist, token) => {
+	try {
+	  const response = await fetch(
+		`${process.env.NEXT_PUBLIC_API_URL}/spotify/artist-connection`,
+		{
+		  method: "POST",
+		  headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${token}`,
+		  },
+		  body: JSON.stringify({ startArtist, endArtist }),
+		}
+	  );
+	  return await response.json();
+	} catch (error) {
+	  console.error("Error fetching artist connection:", error);
+	  throw error;
+	}
+  };

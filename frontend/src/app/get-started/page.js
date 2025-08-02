@@ -11,6 +11,7 @@ import {
   clearProfile,
 } from "../../store/profileSlice";
 import { getProfile, getTopData } from "../../lib/api"; // Your function to fetch Spotify profile
+import { useRouter } from "next/navigation";
 
 // Spotify credentials
 const client_id = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID; // Spotify Client ID
@@ -32,6 +33,7 @@ export default function GetStartedPage() {
   const profileData = useSelector((state) => state.profile.profile); // Access the profile data
   const trackData = useSelector((state) => state.profile.trackData); // Access the profile data
   const token = useSelector((state) => state.profile.accessToken);
+  const router = useRouter();
   console.log("Authenticated", isAuthenticated);
   console.log("Profile data", profileData);
   console.log("tracks", trackData);
@@ -58,6 +60,19 @@ export default function GetStartedPage() {
       console.error("Error fetching profile data:", error); // Log any errors
     }
   };
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!token || !profileData) {
+      dispatch(clearProfile());
+      localStorage.clear();
+      router.push("/login");
+    }
+  }, [token, profileData, dispatch, router]);
+
+  if (!token || !profileData || !profileData.display_name) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

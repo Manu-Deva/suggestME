@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -35,14 +35,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { clearProfile } from "../../store/profileSlice";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
   const profileData = useSelector((state) => state.profile.profile); // Access the profile data
-  console.log("profileData", profileData);
-  const trackData = useSelector((state) => state.profile.trackData);
+  const token = useSelector((state) => state.profile.accessToken);
+  const router = useRouter();
+  const trackData = useSelector((state) => state.profile.trackData) || [];
   const playlists = useSelector((state) => state.profile.playlists);
   const isAuthenticated = useSelector((state) => state.profile.isAuthenticated); // Access the auth status
   const profileState = useSelector((state) => state.profile);
+  console.log("profileData", profileData);
   console.log("profileState", profileState);
   const [activeTab, setActiveTab] = useState("discover");
 
@@ -56,6 +60,16 @@ export default function Dashboard() {
     console.log("Profile Data Updated:", profileData);
     console.log("Track Data Updated:", trackData);
   }, [profileData, trackData]);
+
+  useEffect(() => {
+    if (!token || !profileData) {
+      router.push("/login");
+    }
+  }, [token, profileData, router]);
+
+  if (!token || !profileData || !profileData.display_name) {
+    return null;
+  }
 
   const recentlyPlayed = [
     {
@@ -81,6 +95,14 @@ export default function Dashboard() {
     { name: "Hip Hop", percentage: 20 },
     { name: "Electronic", percentage: 10 },
   ];
+
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(clearProfile());
+    localStorage.clear();
+    router.push("/login");
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -131,13 +153,21 @@ export default function Dashboard() {
             </svg>
           </Button>
           {profileData && profileData.images ? (
-            <span className="flex flex-row items-center space-x-4 text-sm font-medium">
-              <img
-                src={profileData.images[0].url}
-                alt="Profile"
-                className="w-10 h-10 rounded-full mt-2"
-              />
-            </span>
+            <>
+              <span className="flex flex-row items-center space-x-4 text-sm font-medium">
+                <img
+                  src={profileData.images[0].url}
+                  alt="Profile"
+                  className="w-10 h-10 rounded-full mt-2"
+                />
+              </span>
+              <button
+                onClick={handleLogout}
+                className="ml-4 px-4 py-2 text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors duration-200"
+              >
+                Logout
+              </button>
+            </>
           ) : (
             <Link
               href="/login"
