@@ -3,9 +3,14 @@
 		"serverless-cors-plugin": "^0.4.2"
 	},
 	"dependencies": {
-		"axios": "^1.7.7",
-		"dotenv": "^16.4.5",
+		"axios": "^1.10.0",
+		"dotenv": "^16.6.1",
 		"middy": "^0.36.0",
-		"serverless": "^4.17.1"
+		"neo4j-driver": "^5.28.1",
+		"serverless": "^4.17.1",
+		"serverless-offline": "^14.4.0"
+	},
+	"scripts": {
+		"dev": "nodemon --exec serverless offline"
 	}
 }
